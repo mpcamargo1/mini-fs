@@ -50,14 +50,14 @@
 #define ARVORE "arvore"
 #define SAIR "sair"
 
-/*Estrutura Disco*/
+/*Estrutura do HD*/
 typedef struct struct_disk {
   char data[BLOCK_SIZE];
 } disk;
 
 disk mydisk[BLOCK_NUMBER];
 
-/*Estrutura Diretorio*/
+/*Estrutura de Diretório*/
 typedef struct struct_directory {
   char nome[32];
   int posicao_setor;
@@ -66,7 +66,7 @@ typedef struct struct_directory {
   struct struct_directory *proxnivel;
 } dir;
 
-/*Estrutura Arquivo*/
+/*Estrutura do Arquivo*/
 typedef struct struct_arquivo {
   int setor;
   char nome[32];
@@ -77,7 +77,7 @@ typedef struct struct_arquivo {
   struct struct_arquivo *proxarquivo;
 } arquivodisk;
 
-/*Estrutura setor*/
+/*Estrutura do setor do HD*/
 typedef struct struct_setor {
   int setor;
   int inicio;
@@ -85,13 +85,7 @@ typedef struct struct_setor {
   struct struct_setor *proxsetor;
 } setor;
 
-typedef struct struct_tabela {
-  char setor;
-  int num_blocos;
-} tab_blocos;
-
-tab_blocos tabela[BLOCK_NUMBER];
-
+/*Mapa de bits do disco*/
 int mapa_bits[BLOCK_NUMBER]; /*1 - Cheio, 0 - Não cheio*/
 
 /*Vetor utilizado para armazenar os comandos simples*/
@@ -151,15 +145,13 @@ int checa_arquivo(arquivodisk *arquivo, char *nome);
  * digitado*/
 int string_tokenizer() {
   char *token = strtok(comando_shell[1], "\\");
-  ;
   int i = 0;
+
   while (token != NULL) {
     pastausuario[i++] = token;
     token = strtok(NULL, "\\");
   }
-  for (int k = 0; k < i; k++) {
-    fprintf(stderr, "%s\n", pastausuario[k]);
-  }
+
   return i;
 }
 
@@ -184,19 +176,6 @@ void print_ajuda() {
           "\narvore                            ---> arvore de diretórios");
   fprintf(stderr,
           "\nsair                              ---> finaliza o sistema\n");
-  /*Comando de criação
-  fprintf(stderr,"Criar diretório  ");
-    fprintf(stderr,"Sintaxe : criad \\caminhocompleto\\novapasta\n");
-  fprintf(stderr,"Criar arquivo\n");
-    fprintf(stderr,"--Sintaxe : criaa \\caminhocompleto novoarquivo\n");
-  fprintf(stderr,"Remover diretório\n");
-    fprintf(stderr,"--Sintaxe : removed \\caminhocompleto\\diretorioexcluir\n");
-  fprintf(stderr,"Remover arquivo\n");
-    fprintf(stderr,"--Sintaxe : removea \\caminhocompleto arquivo\n");  */
-
-  /*Comandos de visualização
-  fprintf(stderr,"Ver informações do diretório\n");
-    fprintf(stderr,"--Sintaxe : verd \\diretoriocompleto\n");*/
 }
 
 /*Imprime a shell*/
@@ -230,8 +209,7 @@ int iniciar_mapabits() {
 }
 
 int checa_arquivo(arquivodisk *arquivo, char *nome) {
-  arquivodisk *aux = (arquivodisk *)malloc(sizeof(arquivodisk));
-  aux = arquivo;
+  arquivodisk *aux = arquivo;
 
   if (strcmp(aux->nome, nome) == MATCH) return -1;
 
@@ -239,6 +217,8 @@ int checa_arquivo(arquivodisk *arquivo, char *nome) {
     aux = aux->proxarquivo;
     if (strcmp(aux->nome, nome) == MATCH) return -1;
   }
+
+  
   return 0;
 }
 
@@ -330,11 +310,11 @@ void exibe_mapa() {
       "\n Mapa de setores\n(0 -> Setor possui espaço livre)\n(1 -> Setor "
       "cheio)\n\n");
 
-  int cont = 0;
-  for (int col = 0; col < 16; col++) {
-    for (int lin = 0; lin < 16; lin++) {
-      printf("%d", mapa_bits[cont]);
-      cont++;
+  int setor_pesquisado = 0;
+  for (int lin = 0; lin < 16; lin++) {
+    for (int col = 0; col < 16; col++) {
+      printf("%d", mapa_bits[setor_pesquisado]);
+      setor_pesquisado++;
     }
     printf("\n");
   }
