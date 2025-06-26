@@ -140,7 +140,7 @@ void atualizar_mapabits();
 
 /*Remoção*/
 void remover_diretorio(dir *, dir *);
-void remover_arquivo(dir *, dir *, char *);
+void remover_arquivo(dir *, char *);
 void remover_arquivo_disco();
 
 /*Solicitações gráficas*/
@@ -231,54 +231,40 @@ int checa_arquivo(arquivodisk *arquivo, char *nome) {
 }
 
 void criar_arquivo_disco(dir *mapadiretorio, char *nome, int data) {
-  // Estrturas necessárias paga pegar a data e hora
+  // Estruturas necessárias para pegar a data e hora
 
   struct tm *ptm;
   struct timeval tv;
 
-  arquivodisk *arquivo = (arquivodisk *)malloc(sizeof(arquivodisk));
+  arquivodisk **aux = &mapadiretorio->arquivodir;
   gettimeofday(&tv, NULL);
   ptm = localtime(&tv.tv_sec);
 
-  if (mapadiretorio->arquivodir == NULL) {
-    strncpy(arquivo->nome, nome, sizeof(arquivo->nome));
-    strftime(arquivo->date_time, sizeof(arquivo->date_time),
-             "%d/%m/%Y %H:%M:%S", ptm);
-
-    mapadiretorio->arquivodir = arquivo;
-    arquivo->proxarquivo = NULL;
-    arquivo->proxsetor = NULL;
-    int result = pesquisar_mapa_bits_arquivo(data, arquivo);
-    fprintf(stderr, "Arquivo %s salvo com sucesso 1ºSetor : %d \n",
-            arquivo->nome, arquivo->setor);
-  } else {
-    arquivo = mapadiretorio->arquivodir;
-    // Cria o arquivo caso não exista outro com o mesmo nome
-    printf("%s, %s \n", arquivo->nome, nome);
-    if (checa_arquivo(arquivo, nome) == 0) {
-      while (arquivo->proxarquivo != NULL) {
-        arquivo = arquivo->proxarquivo;
-      }
-
-      arquivodisk *arquivo_disk = (arquivodisk *)malloc(sizeof(arquivodisk));
-
-      strftime(arquivo_disk->date_time, sizeof(arquivo_disk->date_time),
-               "%d/%m/%Y %H:%M:%S", ptm);
-
-      strncpy(arquivo_disk->nome, nome, sizeof(arquivo->nome));
-      arquivo_disk->proxarquivo = NULL;
-      arquivo_disk->proxsetor = NULL;
-      arquivo->proxarquivo = arquivo_disk;
-      int result = pesquisar_mapa_bits_arquivo(data, arquivo_disk);
-      fprintf(stderr, "Arquivo %s salvo com sucesso 1ºSetor : %d \n",
-              arquivo_disk->nome, arquivo_disk->setor);
-    } else
+  while (*aux != NULL) {
+    if (checa_arquivo(*aux, nome) == -1) {
       fprintf(stderr,
               "ERRO: Não foi possível criar o arquivo\nJá existe um "
               "arquivo com o mesmo nome !\n");
+      return;
+    }
+
+    aux = &(*aux)->proxarquivo;
   }
 
-  fprintf(stderr, "%s\n\n", mapadiretorio->nome);
+  arquivodisk *arquivo_disk = (arquivodisk *)malloc(sizeof(arquivodisk));
+
+  strncpy(arquivo_disk->nome, nome, sizeof(arquivo_disk->nome));
+  strftime(arquivo_disk->date_time, sizeof(arquivo_disk->date_time),
+           "%d/%m/%Y %H:%M:%S", ptm);
+  arquivo_disk->proxarquivo = NULL;
+  arquivo_disk->proxsetor = NULL;
+
+  // Atribui o ponteiro para apontar para o novo arquivo
+  (*aux) = arquivo_disk;
+
+  int result = pesquisar_mapa_bits_arquivo(data, arquivo_disk);
+  fprintf(stderr, "Arquivo %s salvo com sucesso 1ºSetor : %d \n",
+          arquivo_disk->nome, arquivo_disk->setor);
 }
 
 void inicializar_diretorio(dir *mapadiretorio) {
@@ -552,15 +538,13 @@ void removea(dir *mapadiretorio) {
   dir *nivel = (dir *)malloc(sizeof(dir));
   dir *nivel_anterior = (dir *)malloc(sizeof(dir));
   nivel = pesquisar_diretorio(mapadiretorio, i, pastausuario[i - 1]);
-  nivel_anterior =
-      pesquisar_diretorio(mapadiretorio, i - 1, pastausuario[i - 2]);
 
   if (nivel == NULL) {
     fprintf(stderr, "Pasta inexistente e/ou sintaxe incorreta\n");
     return;
   }
 
-  remover_arquivo(nivel, nivel_anterior, comando_shell[indice_nome_arquivo]);
+  remover_arquivo(nivel, comando_shell[indice_nome_arquivo]);
 }
 
 void executarcomando(dir *mapadiretorio) {
@@ -591,40 +575,29 @@ void executarcomando(dir *mapadiretorio) {
   }
 }
 
-void remover_arquivo(dir *pasta_nivel, dir *pasta_nivel_anterior,
-                     char *nome_arquivo) {
-  arquivodisk *aux = (arquivodisk *)malloc(sizeof(arquivodisk));
-  arquivodisk *aux2 = (arquivodisk *)malloc(sizeof(arquivodisk));
+void remover_arquivo(dir *pasta_nivel, char *nome_arquivo) {
 
   if (pasta_nivel->arquivodir == NULL) {
     fprintf(stderr, "A pasta não possui arquivo\n");
     return;
   }
 
-  aux = pasta_nivel->arquivodir;
-  if (strcmp(aux->nome, nome_arquivo) == MATCH) {
-    pasta_nivel->arquivodir = aux->proxarquivo;
-    remover_arquivo_disco(aux);
-    free(aux);
-    fprintf(stderr, "Arquivo excluído com sucesso\n");
-  } else {
-    aux2 = aux;
-    aux = aux->proxarquivo;
-    while (aux != NULL && strcmp(aux->nome, nome_arquivo)) {
-      aux2 = aux->proxarquivo;
-      aux = aux->proxarquivo;
-    }
+  arquivodisk **alvo = &pasta_nivel->arquivodir;
 
-    if (aux == NULL) {
-      fprintf(stderr, "Arquivo não encontrado\n");
-    } else {
-      fprintf(stderr, "Arquivo encontrado\n");
-      fprintf(stderr, "Arquivo : %s\n", aux->nome);
-      remover_arquivo_disco(aux);
-      aux2->proxarquivo = aux->proxarquivo;
-      free(aux);
-    }
+  while (*alvo != NULL && strcmp((*alvo)->nome, nome_arquivo) != MATCH) {
+    alvo = &(*alvo)->proxarquivo;
   }
+
+  if (*alvo == NULL) {
+    fprintf(stderr, "Arquivo não encontrado\n");
+    return;
+  }
+
+  remover_arquivo_disco((*alvo));
+
+  arquivodisk *aux = (*alvo);
+  *alvo = (*alvo)->proxarquivo;
+  free(aux);
 }
 
 void remover_arquivo_disco(arquivodisk *arquivo) {
@@ -729,8 +702,7 @@ void adicionar_diretorio(dir *nivel_anterior, char *nome_pasta) {
 }
 
 /*
- * Pesquisa o mapa de bits e o disco e grava o arquivo no disco o arquivo nos
- * espaços vazios.
+ * Pesquisa o mapa de bits e grava o arquivo nos espaços vazios do disco.
  */
 int pesquisar_mapa_bits_arquivo(int data_total, arquivodisk *arquivo) {
   int k = 0;
