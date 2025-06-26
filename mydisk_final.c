@@ -29,9 +29,6 @@
 #define ANSI_COLOR_RESET "\x1b[0m"
 
 /*Tamanhos*/
-#define BLOCK_SIZE 512
-#define BLOCK_NUMBER 256
-#define BLOCK_BOOT 10
 #define TAM_NOME 4096
 #define MAX_ARGS 30
 
@@ -53,43 +50,7 @@
 #define ARVORE "arvore"
 #define SAIR "sair"
 
-/*Estrutura do HD*/
-typedef struct struct_disk {
-  char data[BLOCK_SIZE];
-} disk;
-
 disk mydisk[BLOCK_NUMBER];
-
-/*Estrutura de Diretório*/
-typedef struct struct_directory {
-  char nome[32];
-  int posicao_setor;
-  struct struct_arquivo *arquivodir;
-  struct struct_directory *irmao;
-  struct struct_directory *proxnivel;
-} dir;
-
-/*Estrutura do Arquivo*/
-typedef struct struct_arquivo {
-  int setor;
-  char nome[32];
-  int inicio;
-  int tam;
-  char date_time[32];
-  struct struct_setor *proxsetor;
-  struct struct_arquivo *proxarquivo;
-} arquivodisk;
-
-/*Estrutura do setor do HD*/
-typedef struct struct_setor {
-  int setor;
-  int inicio;
-  int tam;
-  struct struct_setor *proxsetor;
-} setor;
-
-/*Mapa de bits do disco*/
-int mapa_bits[BLOCK_NUMBER]; /*1 - Cheio, 0 - Não cheio*/
 
 /*Vetor utilizado para armazenar os comandos simples*/
 char *comando_shell[MAX_ARGS];
@@ -208,12 +169,12 @@ void config_disco() {
 int iniciar_mapabits() {
   /*Setores já ocupados*/
   for (int i = 0; i < BLOCK_BOOT; i++) {
-    mapa_bits[i] = 1;
+    mydisk->mapa_bits[i] = 1;
   }
 
   /*Setores livres*/
   for (int i = BLOCK_BOOT; i < BLOCK_NUMBER; i++) {
-    mapa_bits[i] = 0;
+    mydisk->mapa_bits[i] = 0;
   }
 }
 
@@ -307,7 +268,7 @@ void exibe_mapa() {
   int setor_pesquisado = 0;
   for (int lin = 0; lin < 16; lin++) {
     for (int col = 0; col < 16; col++) {
-      printf("%d", mapa_bits[setor_pesquisado]);
+      printf("%d", mydisk->mapa_bits[setor_pesquisado]);
       setor_pesquisado++;
     }
     printf("\n");
@@ -685,7 +646,7 @@ void adicionar_diretorio(dir *nivel_anterior, char *nome_pasta) {
   direc->proxnivel = NULL;
   direc->arquivodir = NULL;
   direc->posicao_setor = posicao_setor;
-  mapa_bits[direc->posicao_setor] = 1;
+  mydisk->mapa_bits[direc->posicao_setor] = 1;
 
   dir **alvo = &nivel_anterior->proxnivel;
 
@@ -714,7 +675,7 @@ int pesquisar_mapa_bits_arquivo(int data_total, arquivodisk *arquivo) {
   fprintf(stderr, "Arquivo : %s\n", arquivo->nome);
 
 inicio:
-  if (mapa_bits[i] == 0) {
+  if (mydisk->mapa_bits[i] == 0) {
     k = 0;
     inicio = 0;
     bytes_contados = 0;
@@ -819,9 +780,9 @@ void atualizar_mapabits(int bloco) {
   }
 
   if (isBlocoCheio) {
-    mapa_bits[bloco] = 1;
+    mydisk->mapa_bits[bloco] = 1;
   } else {
-    mapa_bits[bloco] = 0;
+    mydisk->mapa_bits[bloco] = 0;
   }
 }
 
@@ -836,7 +797,7 @@ int pesquisar_mapa_bits_diretorio() {
   int i = BLOCK_BOOT;
 
 inicio:
-  if (mapa_bits[i] == 0 && i != BLOCK_NUMBER) {
+  if (mydisk->mapa_bits[i] == 0 && i != BLOCK_NUMBER) {
     k = 0;
     while (k != BLOCK_SIZE) {
       if (mydisk[i].data[k] == 1) {
