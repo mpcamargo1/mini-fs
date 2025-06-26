@@ -36,7 +36,7 @@ O sistema é baseado em estruturas de dados simples (como listas encadeadas) e s
 ## 🛠️ Como compilar e executar
 
 ```bash
-gcc -o mini-fs main.c
+gcc -o mini-fs mydisk_final.c utils.c
 ./mini-fs
 
 ## 🧪 Exemplo de uso
