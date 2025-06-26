@@ -912,14 +912,12 @@ dir *pesquisar_diretorio(dir *mapadiretorio, int nivel, char *nomepasta) {
 
 /*Função para ver os setores do arquivo*/
 void verset(dir *diretorio, char *nome_arquivo) {
-  arquivodisk *aux = (arquivodisk *)malloc(sizeof(arquivodisk));
+  arquivodisk *aux = diretorio->arquivodir;
 
-  if (diretorio->arquivodir == NULL) {
+  if (aux == NULL) {
     fprintf(stderr, "A pasta não possui arquivos\n");
     return;
   }
-
-  aux = diretorio->arquivodir;
 
   while (aux != NULL) {
     if (strcmp(aux->nome, nome_arquivo) != MATCH) {
@@ -957,6 +955,7 @@ void verd(dir *pasta) {
   if (aux->proxnivel != NULL) {
     aux = aux->proxnivel;
     fprintf(stderr, "Diretórios\n");
+
     while (aux != NULL) {
       quantidade_diretorios++;
       fprintf(stderr, "--%s Setor: %d\n", aux->nome, aux->posicao_setor);
